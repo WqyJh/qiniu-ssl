@@ -42,7 +42,7 @@ jobs:
           fi
 
           # 构建二进制文件
-          go build -ldflags="-s -w" -o "${BINARY_NAME}" ./cmd/qiniu-ssl
+          CGO_ENABLED=0 go build -ldflags="-s -w" -o "${BINARY_NAME}" ./cmd/qiniu-ssl
 
           # 创建 sha256 校验和
           if [ "${{ matrix.os }}" = "windows-latest" ]; then

@@ -16,7 +16,7 @@ RUN go mod download
 COPY . .
 
 # 构建应用
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o qiniu-ssl ./cmd/qiniu-ssl
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o qiniu-ssl ./cmd/qiniu-ssl
 
 # 运行时镜像
 FROM alpine:latest
