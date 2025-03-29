@@ -30,6 +30,50 @@ go build -o qiniu-ssl ./cmd/qiniu-ssl
 
 请访问 [Releases](https://github.com/WqyJh/qiniu-ssl/releases) 页面下载适合您系统的二进制文件。
 
+### 使用 Docker
+
+您也可以通过 Docker 来运行本工具，无需本地安装 Go 环境。
+
+#### 使用 Docker Compose（推荐）
+
+1. 准备配置文件：
+
+```bash
+# 复制环境变量配置文件并修改
+cp .env.example .env
+# 编辑.env文件，填入您的七牛云和阿里云API凭证以及Let's Encrypt邮箱
+
+# 创建配置目录
+mkdir -p config
+# 复制域名配置示例并修改
+cp config/domains.txt.example config/domains.txt
+# 编辑domains.txt，每行添加一个需要管理的域名
+```
+
+2. 启动容器：
+
+```bash
+docker-compose up -d
+```
+
+#### 直接使用 Docker 命令
+
+```bash
+# 构建镜像
+docker build -t qiniu-ssl .
+
+# 运行容器
+docker run -d \
+  --name qiniu-ssl \
+  -v $(pwd)/certs:/app/certs \
+  -v $(pwd)/config:/app/config \
+  -e QINIU_ACCESS_KEY=您的七牛云AccessKey \
+  -e QINIU_SECRET_KEY=您的七牛云SecretKey \
+  -e ALIYUN_ACCESS_KEY=您的阿里云AccessKey \
+  -e ALIYUN_SECRET_KEY=您的阿里云SecretKey \
+  wqyjh/qiniu-ssl:latest --domains-file=/app/config/domains.txt --email=your@email.com --daemon
+```
+
 ## 使用方法
 
 您需要准备
@@ -100,12 +144,13 @@ sub.example.net" > domains.txt
 
 | 选项 | 短选项 | 描述 | 默认值 |
 |------|------|------|------|
-| `--qiniu-access-key` | `-qak` | 七牛云AccessKey (也可通过QINIU_ACCESS_KEY环境变量设置) | - |
-| `--qiniu-secret-key` | `-qsk` | 七牛云SecretKey (也可通过QINIU_SECRET_KEY环境变量设置) | - |
-| `--aliyun-access-key` | `-aak` | 阿里云AccessKey (也可通过ALIYUN_ACCESS_KEY环境变量设置) | - |
-| `--aliyun-secret-key` | `-ask` | 阿里云SecretKey (也可通过ALIYUN_SECRET_KEY环境变量设置) | - |
-| `--aliyun-region` | `-ar` | 阿里云区域 | `cn-hangzhou` |
+| `--qiniu-access-key` | `-qak` | 七牛云AccessKey (QINIU_ACCESS_KEY) | - |
+| `--qiniu-secret-key` | `-qsk` | 七牛云SecretKey (QINIU_SECRET_KEY) | - |
+| `--aliyun-access-key` | `-aak` | 阿里云AccessKey (ALIYUN_ACCESS_KEY) | - |
+| `--aliyun-secret-key` | `-ask` | 阿里云SecretKey (ALIYUN_SECRET_KEY) | - |
+| `--aliyun-region` | `-ar` | 阿里云区域 (ALIYUN_REGION) | `cn-hangzhou` |
 | `--domain` | `-d` | 证书申请的域名 | - |
+| `--domains-file` | `-df` | 包含域名列表的文件路径（每行一个域名） | - |
 | `--email` | `-e` | 用于Let's Encrypt注册的邮箱地址 | - |
 | `--cert-dir` | `-c` | 证书存储目录 | `certs` |
 | `--force-https` | `-f` | 是否强制HTTPS | `false` |
@@ -114,7 +159,6 @@ sub.example.net" > domains.txt
 | `--threshold` | `-t` | 证书更新阈值（剩余有效期少于多少天触发更新，单位：天） | 30 |
 | `--daemon` | - | 是否以守护进程模式运行，定期检查证书 | `false` |
 | `--log-file` | - | 日志文件路径（不指定则输出到标准输出） | - |
-| `--domains-file` | `-df` | 包含域名列表的文件路径（每行一个域名） | - |
 
 ## 工作原理
 

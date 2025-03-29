@@ -1,0 +1,11 @@
+# 每行一个域名
+# 空行和以#开头的行将被忽略
+
+# 示例域名（使用时请替换为自己的域名）
+example.com
+example.org
+sub.example.net
+
+# 其他域名
+# another-domain.com
+# test.domain.org

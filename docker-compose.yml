@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  qiniu-ssl:
+    image: wqyjh/qiniu-ssl:latest
+    restart: unless-stopped
+    volumes:
+      - ./certs:/app/certs
+      - ./config:/app/config
+    env_file:
+      - .env
+    command:
+      - --domains-file=/app/config/domains.txt
+      - --email=${LETSENCRYPT_EMAIL}
+      - --cert-dir=/app/certs
+      - --daemon

@@ -1,3 +1,39 @@
-certs/
-.vscode/
+# 编译后的二进制文件和可执行文件
 /qiniu-ssl
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# 测试二进制文件
+*.test
+
+# 输出的性能分析文件
+*.prof
+
+# 证书和密钥文件
+certs/
+*.pem
+*.key
+*.crt
+
+# 配置文件
+.env
+config/domains.txt
+
+# IDE 文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 日志文件
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 依赖目录
+vendor/
