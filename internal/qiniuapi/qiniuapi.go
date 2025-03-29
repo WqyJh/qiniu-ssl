@@ -28,14 +28,22 @@ type QiniuClient struct {
 
 // CertificateInfo represents certificate information
 type CertificateInfo struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Common      string    `json:"common"`
-	DNSNames    []string  `json:"dnsnames"`
-	NotBefore   time.Time `json:"not_before"`
-	NotAfter    time.Time `json:"not_after"`
-	CreateTime  time.Time `json:"create_time"`
-	Description string    `json:"description"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Common      string   `json:"common_name"`
+	DNSNames    []string `json:"dnsnames"`
+	NotBefore   int64    `json:"not_before"`
+	NotAfter    int64    `json:"not_after"`
+	CreateTime  int64    `json:"create_time"`
+	Description string   `json:"description"`
+	Pri         string   `json:"pri,omitempty"`
+	Ca          string   `json:"ca,omitempty"`
+}
+
+type CertificateResponse struct {
+	Code  int             `json:"code"`
+	Error string          `json:"error"`
+	Cert  CertificateInfo `json:"cert"`
 }
 
 // CertificateUploadRequest represents a certificate upload request
@@ -123,11 +131,11 @@ func (q *QiniuClient) doRequest(ctx context.Context, method, url string, body []
 
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("API error: %s", respBody)
 		var apiResp APIResponse
 		if err := json.Unmarshal(respBody, &apiResp); err != nil {
 			return nil, fmt.Errorf("API error: %s", respBody)
 		}
+		log.Printf("API error: %s", respBody)
 		return nil, fmt.Errorf("API error: %s", apiResp.Error)
 	}
 
@@ -253,4 +261,52 @@ func (q *QiniuClient) EnableHTTPS(domain, certID string, forceHTTPS, http2Enable
 	}
 
 	return nil
+}
+
+// GetCertificateInfo retrieves information about a specific certificate by ID
+func (q *QiniuClient) GetCertificateInfo(certID string) (*CertificateInfo, error) {
+	ctx := context.Background()
+
+	url := fmt.Sprintf("%s/sslcert/%s", QiniuAPIHost, certID)
+	respBody, err := q.doRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get certificate info: %v", err)
+	}
+
+	// Parse response
+	var cert CertificateResponse
+
+	// First, unmarshal the data to a map to process the date formats
+	if err := json.Unmarshal(respBody, &cert); err != nil {
+		return nil, fmt.Errorf("failed to parse certificate info: %v", err)
+	}
+
+	return &cert.Cert, nil
+}
+
+// CheckCertificateFromQiniu checks if a domain's certificate in Qiniu is about to expire
+func (q *QiniuClient) CheckCertificateFromQiniu(domain string, thresholdDays int) (bool, *CertificateInfo, error) {
+	// Get domain information
+	domainInfo, err := q.GetDomainInfo(domain)
+	if err != nil {
+		return false, nil, fmt.Errorf("failed to get domain info: %v", err)
+	}
+
+	// Check if HTTPS is enabled and a certificate is bound
+	if domainInfo.HTTPS == nil || domainInfo.HTTPS.CertID == "" {
+		return true, nil, fmt.Errorf("domain does not have HTTPS enabled or certificate bound")
+	}
+
+	// Get certificate information
+	certID := domainInfo.HTTPS.CertID
+	certInfo, err := q.GetCertificateInfo(certID)
+	if err != nil {
+		return false, nil, fmt.Errorf("failed to get certificate info: %v", err)
+	}
+
+	// Check if certificate is about to expire
+	thresholdTime := time.Now().AddDate(0, 0, thresholdDays)
+	needsRenewal := certInfo.NotAfter < thresholdTime.Unix()
+
+	return needsRenewal, certInfo, nil
 }
