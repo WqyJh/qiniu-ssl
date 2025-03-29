@@ -1,0 +1,91 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        goarch: [amd64, arm64]
+        exclude:
+          - os: windows-latest
+            goarch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+          cache: true
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.os == 'windows-latest' && 'windows' || matrix.os == 'macos-latest' && 'darwin' || 'linux' }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          # 设置输出文件名
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            BINARY_NAME="qiniu-ssl-${{ env.GOOS }}-${{ matrix.goarch }}.exe"
+          else
+            BINARY_NAME="qiniu-ssl-${{ env.GOOS }}-${{ matrix.goarch }}"
+          fi
+
+          # 构建二进制文件
+          go build -ldflags="-s -w" -o "${BINARY_NAME}" ./cmd/qiniu-ssl
+
+          # 创建 sha256 校验和
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            certutil -hashfile "${BINARY_NAME}" SHA256 > "${BINARY_NAME}.sha256"
+          else
+            shasum -a 256 "${BINARY_NAME}" > "${BINARY_NAME}.sha256"
+          fi
+        shell: bash
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: qiniu-ssl-${{ matrix.os }}-${{ matrix.goarch }}
+          path: |
+            qiniu-ssl-*
+          retention-days: 7
+
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set release version
+        id: vars
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.vars.outputs.tag }}
+          draft: false
+          prerelease: false
+          files: |
+            qiniu-ssl-*-*/qiniu-ssl-*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

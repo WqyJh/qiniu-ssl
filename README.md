@@ -2,6 +2,9 @@
 
 一个用于申请Let's Encrypt SSL证书并上传到七牛云CDN的命令行工具。支持在非公网环境通过阿里云DNS Challenge方式验证域名所有权。
 
+![Build and Release](https://github.com/WqyJh/qiniu-ssl/workflows/Build%20and%20Release/badge.svg)
+![Docker Build and Push](https://github.com/WqyJh/qiniu-ssl/workflows/Docker%20Build%20and%20Push/badge.svg)
+
 ## 功能
 
 - 通过阿里云DNS API自动申请Let's Encrypt免费SSL证书（DNS-01 challenge方式，适用于内网环境）
@@ -194,6 +197,34 @@ sub.example.net" > domains.txt
 - **您需要先在七牛云控制台添加并配置好域名**，本工具不包含域名创建功能
 - 本工具会自动检测域名是否已启用HTTPS，如未启用会自动为您启用
 - 为避免 Let's Encrypt API 限制，建议不要过于频繁地执行证书申请操作
+
+## 开发和贡献
+
+### 自动化构建
+
+本项目使用GitHub Actions来自动化构建过程：
+
+1. **二进制构建**：当代码提交到main分支或创建新标签（tag）时，会自动构建适用于Linux、Windows和macOS的二进制文件。
+   - 对于发布标签（如v0.1.0），会自动创建GitHub Release并附加构建的二进制文件。
+
+2. **Docker镜像构建**：当代码提交到main分支或创建新标签（tag）时，会自动构建Docker镜像并推送到 Docker Hub: [wqyjh/qiniu-ssl](https://hub.docker.com/r/wqyjh/qiniu-ssl)
+
+要使用自动构建的Docker镜像，可以执行：
+
+```bash
+# 使用最新版本
+docker pull wqyjh/qiniu-ssl:latest
+
+# 使用特定版本
+docker pull wqyjh/qiniu-ssl:v0.1.0
+```
+
+### 开发
+
+1. 克隆仓库
+2. 安装依赖: `go mod download`
+3. 编译: `go build -o qiniu-ssl ./cmd/qiniu-ssl`
+4. 运行测试: `go test ./...`
 
 ## 许可证
 
